@@ -1,0 +1,24 @@
+@'
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+
+# Local database
+db.sqlite3
+
+# Generated files
+staticfiles/
+media/
+
+# Editor settings
+.vscode/
+'@ | Set-Content -Encoding ascii .gitignore

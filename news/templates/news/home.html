@@ -1,0 +1,1470 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>NewsMind | Understand the News</title>
+
+    <meta
+        name="description"
+        content="NewsMind brings current headlines and trusted reporting together in a clean, readable feed."
+    >
+
+    <meta
+        property="og:title"
+        content="NewsMind"
+    >
+
+    <meta
+        property="og:description"
+        content="Browse current news across topics in one simple feed."
+    >
+
+    <meta
+        property="og:type"
+        content="website"
+    >
+
+    <link
+        rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f172a'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-size='38' font-family='Georgia' fill='%2338bdf8'%3EN%3C/text%3E%3C/svg%3E"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'news/style.css' %}?v=11"
+    >
+    <style>
+        /* =====================================================
+           NEWSMIND HERO SLIDER
+           All returned articles are slides.
+           The first 4 are the first 4 positions; after that,
+           articles 5, 6, 7... continue naturally.
+        ===================================================== */
+
+        .newsmind-slider {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .newsmind-slides {
+            position: absolute;
+            inset: 0;
+        }
+
+        .newsmind-slide {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(30px);
+            transition:
+                opacity .4s ease,
+                transform .4s ease;
+            pointer-events: none;
+        }
+
+        .newsmind-slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+            z-index: 2;
+            pointer-events: auto;
+        }
+
+        .newsmind-slide .hero-image {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .newsmind-dots {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .newsmind-dots .hero-dot {
+            cursor: pointer;
+        }
+    </style>
+
+
+</head>
+
+
+<body>
+
+    {% csrf_token %}
+
+<!-- =====================================================
+     NAVBAR
+===================================================== -->
+
+<nav class="navbar">
+
+    <!-- BRAND -->
+
+    <div class="nav-left">
+
+        <a
+            href="/"
+            class="brand"
+        >
+            News<span>Mind</span>
+        </a>
+
+        <span class="brand-tagline">
+            Intelligence Behind The News
+        </span>
+
+    </div>
+
+
+    <!-- NAVIGATION -->
+
+    <div class="nav-topics">
+
+        <a
+            href="/"
+            class="active"
+        >
+            Home
+        </a>
+
+        <a href="?q=technology">
+            Technology
+        </a>
+
+        <a href="?q=business">
+            Business
+        </a>
+
+        <a href="?q=india">
+            India
+        </a>
+
+        <a href="?q=world">
+            World
+        </a>
+
+        <a href="?q=science">
+            Science
+        </a>
+
+        <a href="?q=sports">
+            Sports
+        </a>
+
+    </div>
+
+
+    <!-- NAV ACTIONS -->
+
+    <div class="nav-actions">
+
+        <!-- SEARCH ICON -->
+
+        <a
+            href="#search"
+            class="nav-search-icon"
+            aria-label="Search"
+        >
+            <span class="search-symbol">
+                ⌕
+            </span>
+        </a>
+
+
+        <!-- SEARCH BOX -->
+
+        <form
+            class="nav-search"
+            method="GET"
+            id="search"
+        >
+
+            <input
+                type="text"
+                name="q"
+                value="{{ query }}"
+                placeholder="Search news..."
+                aria-label="Search news"
+            >
+
+        </form>
+
+    </div>
+
+</nav>
+
+
+
+<!-- =====================================================
+     HERO
+===================================================== -->
+
+{% if articles %}
+
+<section class="hero-section">
+
+
+    <!-- FEATURED STORY -->
+
+    <div class="hero-story newsmind-slider">
+
+        <div class="newsmind-slides">
+
+            {% for article in articles %}
+
+            <div class="newsmind-slide{% if forloop.first %} active{% endif %}"
+                 data-slide="{{ forloop.counter0 }}">
+
+                {% if article.image %}
+                <img
+                    src="{{ article.image }}"
+                    alt="{{ article.title }}"
+                    class="hero-image"
+                    onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1200 700%22%3E%3Crect width=%221200%22 height=%22700%22 fill=%22%230d1b2d%22/%3E%3Ctext x=%22600%22 y=%22360%22 text-anchor=%22middle%22 font-size=%2270%22 font-family=%22Georgia%22 fill=%22%2324b5f5%22%3ENewsMind%3C/text%3E%3C/svg%3E';"
+                >
+                {% endif %}
+
+                <div class="hero-overlay"></div>
+
+                <div class="hero-content">
+
+                    <div class="hero-category">
+                        {{ query|upper }}
+                    </div>
+
+                    <div class="hero-source">
+                        {{ article.source|default:"NewsMind" }}
+
+                        {% if article.date %}
+                        ·
+                        <time data-news-date="{{ article.date }}">
+                            {{ article.date }}
+                        </time>
+                        {% endif %}
+                    </div>
+
+                    <h1 class="hero-title">
+                        {{ article.title }}
+                    </h1>
+
+                    {% if article.description %}
+                    <p class="hero-description">
+                        {{ article.description }}
+                    </p>
+                    {% elif article.summary %}
+                    <p class="hero-description">
+                        {{ article.summary }}
+                    </p>
+                    {% endif %}
+
+                    {% if article.valid_url %}
+                    <a
+                        href="{{ article.url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="hero-button"
+                    >
+                        Read the full story
+                        <span>→</span>
+                    </a>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- HERO CONTROLS -->
+
+        <div class="hero-controls">
+
+            <!-- Exactly 4 position indicators.
+                 They represent the current position within each
+                 group of 4 articles. Articles themselves continue
+                 beyond slide 4. -->
+
+            <div class="newsmind-dots">
+
+                <button class="hero-dot active"
+                        type="button"
+                        data-position="0"
+                        aria-label="Show article position 1"></button>
+
+                <button class="hero-dot"
+                        type="button"
+                        data-position="1"
+                        aria-label="Show article position 2"></button>
+
+                <button class="hero-dot"
+                        type="button"
+                        data-position="2"
+                        aria-label="Show article position 3"></button>
+
+                <button class="hero-dot"
+                        type="button"
+                        data-position="3"
+                        aria-label="Show article position 4"></button>
+
+            </div>
+
+
+            <div class="hero-arrows">
+
+                <button
+                    class="hero-arrow"
+                    id="hero-prev"
+                    type="button"
+                    aria-label="Previous story"
+                >
+                    ←
+                </button>
+
+                <button
+                    class="hero-arrow"
+                    id="hero-next"
+                    type="button"
+                    aria-label="Next story"
+                >
+                    →
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<!-- =================================================
+         LATEST STORIES
+    ================================================== -->
+
+    <aside class="latest-stories">
+
+
+        <div class="latest-heading">
+
+            <h2>
+                Latest Stories
+            </h2>
+
+
+            <a
+                href="?q={{ query }}"
+                class="latest-view-all"
+            >
+
+                View All
+
+                <span>
+                    →
+                </span>
+
+            </a>
+
+        </div>
+
+
+
+        <div class="latest-list">
+
+
+            {% for article in articles %}
+
+                {% if forloop.counter <= 6 %}
+
+                <article class="latest-item">
+
+
+                    {% if article.image %}
+
+                    <div class="latest-image-wrap">
+
+                        <img
+                            src="{{ article.image }}"
+                            alt="{{ article.title }}"
+                            class="latest-image"
+                            loading="lazy"
+                            onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 160%22%3E%3Crect width=%22200%22 height=%22160%22 fill=%22%23e9edf2%22/%3E%3Ctext x=%22100%22 y=%2285%22 text-anchor=%22middle%22 font-size=%2224%22 font-family=%22Georgia%22 fill=%22%2307111f%22%3ENewsMind%3C/text%3E%3C/svg%3E';"
+                        >
+
+                    </div>
+
+                    {% endif %}
+
+
+
+                    <div class="latest-content">
+
+
+                        <span class="latest-category">
+
+                            {{ article.source|default:"News" }}
+
+                        </span>
+
+
+                        <h3>
+
+                            {% if article.valid_url %}
+
+                            <a
+                                href="{{ article.url }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+
+                                {{ article.title }}
+
+                            </a>
+
+                            {% else %}
+
+                                {{ article.title }}
+
+                            {% endif %}
+
+                        </h3>
+
+
+                        <time
+                            data-news-date="{{ article.date }}"
+                        >
+
+                            {{ article.date|default:"Date unavailable" }}
+
+                        </time>
+
+
+                    </div>
+
+
+                </article>
+
+                {% endif %}
+
+            {% endfor %}
+
+
+        </div>
+
+    </aside>
+
+
+</section>
+
+{% endif %}
+
+
+
+<!-- =====================================================
+     BREAKING NEWS
+===================================================== -->
+
+<div class="breaking-bar">
+
+
+    <div class="breaking-label">
+
+        <span class="breaking-dot"></span>
+
+        BREAKING
+
+    </div>
+
+
+    <div class="breaking-track">
+
+        <span>
+            Latest {{ query }} news and important developments
+        </span>
+
+
+        <span class="breaking-separator">
+            •
+        </span>
+
+
+        <span>
+            NewsMind brings the important points together
+        </span>
+
+
+        <span class="breaking-separator">
+            •
+        </span>
+
+
+        <span>
+            Stay informed with the latest stories
+        </span>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     CATEGORY NAVIGATION
+===================================================== -->
+
+<nav class="category-nav">
+
+
+    <a
+        href="/"
+        class="all-tab active"
+    >
+
+        <span class="category-icon">
+            ◉
+        </span>
+
+        All
+
+    </a>
+
+
+    <a href="?q=technology">
+
+        <span class="category-icon">
+            ⚙
+        </span>
+
+        Technology
+
+    </a>
+
+
+    <a href="?q=sports">
+
+        <span class="category-icon">
+            🏆
+        </span>
+
+        Sports
+
+    </a>
+
+
+    <a href="?q=india">
+
+        <span class="category-icon">
+            🏛
+        </span>
+
+        India
+
+    </a>
+
+
+    <a href="?q=world">
+
+        <span class="category-icon">
+            🌐
+        </span>
+
+        World
+
+    </a>
+
+
+    <a href="?q=business">
+
+        <span class="category-icon">
+            📊
+        </span>
+
+        Business
+
+    </a>
+
+
+    <a href="?q=science">
+
+        <span class="category-icon">
+            ⚗
+        </span>
+
+        Science
+
+    </a>
+
+
+    <a href="?q=entertainment">
+
+        <span class="category-icon">
+            🎬
+        </span>
+
+        Entertainment
+
+    </a>
+
+
+</nav>
+
+
+
+<!-- =====================================================
+     MAIN CONTENT
+===================================================== -->
+
+<main class="main-container">
+
+
+    <!-- =================================================
+         LATEST NEWS
+    ================================================== -->
+
+    <section
+        class="latest-news"
+        id="latest-news"
+    >
+
+
+        <div class="section-header">
+
+
+            <div>
+
+                <span class="section-kicker">
+                    NEWSMIND
+                </span>
+
+
+                <h2>
+                    Latest News
+                </h2>
+
+
+                <p>
+
+                    The latest
+                    <strong>{{ query }}</strong>
+                    stories, curated for you.
+
+                </p>
+
+            </div>
+
+
+            <a
+                href="?q={{ query }}"
+                class="section-action"
+            >
+
+                View All
+
+                <span>
+                    →
+                </span>
+
+            </a>
+
+
+        </div>
+
+
+
+        <!-- ARTICLE GRID -->
+
+        <section class="magazine-grid">
+
+
+            {% for article in articles %}
+
+
+            <article class="news-card">
+
+
+                <!-- IMAGE -->
+
+                <div class="card-image-wrap">
+
+
+                    {% if article.image %}
+
+                    <img
+                        src="{{ article.image }}"
+                        alt="{{ article.title }}"
+                        class="card-image"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 600 400%22%3E%3Crect width=%22600%22 height=%22400%22 fill=%22%23e9edf2%22/%3E%3Ctext x=%22300%22 y=%22215%22 text-anchor=%22middle%22 font-size=%2248%22 font-family=%22Georgia%22 fill=%22%2307111f%22%3ENewsMind%3C/text%3E%3C/svg%3E';"
+                    >
+
+                    {% else %}
+
+                    <div class="image-placeholder">
+                        NewsMind
+                    </div>
+
+                    {% endif %}
+
+
+                    <span class="image-category">
+                        {{ query|upper }}
+                    </span>
+
+
+                </div>
+
+
+
+                <!-- CARD CONTENT -->
+
+                <div class="card-body">
+
+
+                    <!-- META -->
+
+                    <div class="card-meta">
+
+                        <span class="card-source">
+
+                            {{ article.source|default:"Unknown source" }}
+
+                        </span>
+
+
+                        <span class="meta-dot">
+                            •
+                        </span>
+
+
+                        <time
+                            data-news-date="{{ article.date }}"
+                        >
+
+                            {{ article.date|default:"Date unavailable" }}
+
+                        </time>
+
+                    </div>
+
+
+
+                    <!-- TITLE -->
+
+                    <h3 class="card-title">
+
+
+                        {% if article.valid_url %}
+
+                        <a
+                            href="{{ article.url }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+
+                            {{ article.title }}
+
+                        </a>
+
+                        {% else %}
+
+                            {{ article.title }}
+
+                        {% endif %}
+
+
+                    </h3>
+
+
+
+                    <!-- DESCRIPTION -->
+
+                    {% if article.description %}
+
+                    <p class="card-description">
+
+                        {{ article.description }}
+
+                    </p>
+
+                    {% elif article.summary %}
+
+                    <p class="card-description">
+
+                        {{ article.summary }}
+
+                    </p>
+
+                    {% endif %}
+
+
+
+                    <!-- CARD FOOTER -->
+
+                    <div class="card-footer">
+
+
+                        <span class="card-source">
+
+                            {{ article.source|default:"News" }}
+
+                        </span>
+
+                        <div class="card-actions">
+
+                            <button
+                                type="button"
+                                class="ai-summary-button"
+                                data-url="{{ article.url }}"
+                                data-title="{{ article.title|escapejs }}"
+                                data-description="{{ article.description|escapejs }}"
+                                data-source="{{ article.source|default:'NewsMind'|escapejs }}"
+                                data-category="{{ query|default:'general' }}"
+                            >
+                                AI Summarize
+                            </button>
+
+                            {% if article.valid_url %}
+
+                            <a
+                                href="{{ article.url }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="read-more"
+                            >
+
+                                Read more
+
+                                <span>
+                                    →
+                                </span>
+
+                            </a>
+
+                            {% endif %}
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </article>
+
+
+            {% empty %}
+
+
+                {% if request.GET.q %}
+
+                    {% include 'news/no_results.html' %}
+
+                {% else %}
+
+                    {% include 'news/empty_state.html' %}
+
+                {% endif %}
+
+
+            {% endfor %}
+
+
+        </section>
+
+    </section>
+
+
+
+    <!-- =================================================
+         TOP PICKS
+    ================================================== -->
+
+    {% if articles|length > 4 %}
+
+    <section class="top-picks">
+
+
+        <div class="section-header">
+
+
+            <div>
+
+                <span class="section-kicker">
+                    EDITOR'S CHOICE
+                </span>
+
+
+                <h2>
+                    Top Picks for You
+                </h2>
+
+
+                <p>
+                    Stories worth your attention.
+                </p>
+
+            </div>
+
+
+            <a
+                href="?q={{ query }}"
+                class="section-action"
+            >
+
+                View All
+
+                <span>
+                    →
+                </span>
+
+            </a>
+
+
+        </div>
+
+
+
+        <div class="top-picks-grid">
+
+
+            <!-- MAIN PICK -->
+
+            {% with pick=articles.4 %}
+
+            <article class="top-pick-feature">
+
+
+                {% if pick.image %}
+
+                <div class="top-pick-image-wrap">
+
+                    <img
+                        src="{{ pick.image }}"
+                        alt="{{ pick.title }}"
+                        class="top-pick-image"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 900 600%22%3E%3Crect width=%22900%22 height=%22600%22 fill=%22%23e9edf2%22/%3E%3Ctext x=%22450%22 y=%22320%22 text-anchor=%22middle%22 font-size=%2260%22 font-family=%22Georgia%22 fill=%22%2307111f%22%3ENewsMind%3C/text%3E%3C/svg%3E';"
+                    >
+
+                </div>
+
+                {% endif %}
+
+
+
+                <div class="top-pick-body">
+
+
+                    <div class="top-pick-category">
+
+                        {{ query|upper }}
+
+                    </div>
+
+
+                    <h3 class="top-pick-title">
+
+                        {{ pick.title }}
+
+                    </h3>
+
+
+                    {% if pick.description %}
+
+                    <p class="top-pick-description">
+
+                        {{ pick.description }}
+
+                    </p>
+
+                    {% elif pick.summary %}
+
+                    <p class="top-pick-description">
+
+                        {{ pick.summary }}
+
+                    </p>
+
+                    {% endif %}
+
+
+                    {% if pick.valid_url %}
+
+                    <a
+                        href="{{ pick.url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="read-more"
+                    >
+
+                        Read story
+
+                        <span>
+                            →
+                        </span>
+
+                    </a>
+
+                    {% endif %}
+
+
+                </div>
+
+
+            </article>
+
+            {% endwith %}
+
+
+
+            <!-- SMALL PICKS -->
+
+            <div class="top-pick-list">
+
+
+                {% for article in articles %}
+
+                    {% if forloop.counter > 4 and forloop.counter <= 8 %}
+
+                    <article class="top-pick-small">
+
+
+                        {% if article.image %}
+
+                        <img
+                            src="{{ article.image }}"
+                            alt="{{ article.title }}"
+                            class="top-pick-small-image"
+                            loading="lazy"
+                            onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 300 220%22%3E%3Crect width=%22300%22 height=%22220%22 fill=%22%23e9edf2%22/%3E%3Ctext x=%22150%22 y=%22120%22 text-anchor=%22middle%22 font-size=%2230%22 font-family=%22Georgia%22 fill=%22%2307111f%22%3ENewsMind%3C/text%3E%3C/svg%3E';"
+                        >
+
+                        {% endif %}
+
+
+                        <div class="top-pick-small-content">
+
+
+                            <span class="top-pick-small-category">
+
+                                {{ article.source|default:"News" }}
+
+                            </span>
+
+
+                            <h3 class="top-pick-small-title">
+
+
+                                {% if article.valid_url %}
+
+                                <a
+                                    href="{{ article.url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style="text-decoration:none;"
+                                >
+
+                                    {{ article.title }}
+
+                                </a>
+
+                                {% else %}
+
+                                    {{ article.title }}
+
+                                {% endif %}
+
+
+                            </h3>
+
+
+                            <span class="top-pick-small-meta">
+
+                                <time
+                                    data-news-date="{{ article.date }}"
+                                >
+
+                                    {{ article.date|default:"Date unavailable" }}
+
+                                </time>
+
+                            </span>
+
+
+                        </div>
+
+
+                    </article>
+
+                    {% endif %}
+
+                {% endfor %}
+
+
+            </div>
+
+
+        </div>
+
+
+    </section>
+
+    {% endif %}
+
+
+    <!-- =================================================
+         CTA
+    ================================================== -->
+
+    <section class="cta-banner">
+
+
+        <div class="cta-content">
+
+
+            <div class="cta-brand">
+
+                News<span>Mind</span>
+
+            </div>
+
+
+            <h2 class="cta-title">
+
+                A clearer world,
+
+                one story at a time.
+
+            </h2>
+
+
+        </div>
+
+
+        <a
+            href="#latest-news"
+            class="cta-button"
+        >
+
+            Start exploring
+
+            <span>
+                →
+            </span>
+
+        </a>
+
+
+    </section>
+
+
+</main>
+
+
+
+<!-- =====================================================
+     FOOTER
+===================================================== -->
+
+<footer class="footer">
+
+
+    <!-- BRAND -->
+
+    <div class="footer-brand">
+
+
+        <a
+            href="/"
+            class="brand"
+        >
+
+            News<span>Mind</span>
+
+        </a>
+
+
+        <p>
+            Intelligence Behind The News
+        </p>
+
+
+    </div>
+
+</footer>
+
+
+
+<!-- =====================================================
+     DATE FORMATTER
+===================================================== -->
+
+<script>
+
+document
+    .querySelectorAll('[data-news-date]')
+    .forEach((element) => {
+
+        const value = element.dataset.newsDate;
+
+        if (!value) {
+            return;
+        }
+
+        const date = new Date(`${value}T00:00:00`);
+
+        if (!Number.isNaN(date.getTime())) {
+
+            element.textContent = date.toLocaleDateString(
+                'en-GB',
+                {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                }
+            );
+
+        }
+
+    });
+
+</script>
+
+
+    <script>
+        function getCsrfToken() {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find((row) => row.startsWith('csrftoken='));
+
+            return cookieValue ? decodeURIComponent(cookieValue.split('=')[1]) : '';
+        }
+
+        function bindAiSummaryButtons() {
+            document.querySelectorAll('.ai-summary-button').forEach(function (button) {
+                if (button.dataset.bound === 'true') {
+                    return;
+                }
+
+                button.dataset.bound = 'true';
+
+                button.addEventListener('click', function (event) {
+                    event.preventDefault();
+
+                    const card = button.closest('.news-card');
+                    if (!card) {
+                        return;
+                    }
+
+                    const descriptionEl = card.querySelector('.card-description');
+                    const originalText = descriptionEl ? descriptionEl.textContent.trim() : '';
+                    const url = button.dataset.url || '';
+                    const title = button.dataset.title || '';
+                    const description = button.dataset.description || '';
+                    const source = button.dataset.source || 'NewsMind';
+                    const category = button.dataset.category || 'general';
+
+                    if (!url) {
+                        return;
+                    }
+
+                    button.disabled = true;
+                    button.textContent = 'Summarizing...';
+
+                    const existingError = card.querySelector('.ai-summary-error');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+
+                    fetch('/summarize-article/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            url: url,
+                            title: title,
+                            description: description,
+                            source: source,
+                            category: category,
+                        })
+                    })
+                    .then(function (response) {
+                        return response.json().then(function (data) {
+                            return { ok: response.ok, data: data };
+                        });
+                    })
+                    .then(function (result) {
+                        if (!result.ok || !result.data.summary) {
+                            button.disabled = false;
+                            button.textContent = 'AI Summarize';
+
+                            if (descriptionEl && originalText) {
+                                descriptionEl.textContent = originalText;
+                            }
+
+                            const errorEl = document.createElement('div');
+                            errorEl.className = 'ai-summary-error';
+                            errorEl.textContent = result.data && result.data.error ? result.data.error : 'AI summary is unavailable right now.';
+                            card.querySelector('.card-body').appendChild(errorEl);
+                            return;
+                        }
+
+                        if (descriptionEl) {
+                            descriptionEl.textContent = result.data.summary;
+                            descriptionEl.classList.add('ai-summary-visible');
+                        }
+
+                        button.textContent = '✓ AI Summary';
+                        button.disabled = true;
+                    })
+                    .catch(function () {
+                        button.disabled = false;
+                        button.textContent = 'AI Summarize';
+
+                        if (descriptionEl && originalText) {
+                            descriptionEl.textContent = originalText;
+                        }
+
+                        const errorEl = document.createElement('div');
+                        errorEl.className = 'ai-summary-error';
+                        errorEl.textContent = 'AI summary is unavailable right now.';
+                        card.querySelector('.card-body').appendChild(errorEl);
+                    });
+                });
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bindAiSummaryButtons);
+        } else {
+            bindAiSummaryButtons();
+        }
+    </script>
+
+
+    <script>
+        /* =====================================================
+           NEWSMIND HERO SLIDER
+
+           IMPORTANT:
+           There are NOT only 4 articles.
+
+           ALL articles returned by Django become slides:
+
+             Article 1 → Slide 1
+             Article 2 → Slide 2
+             Article 3 → Slide 3
+             Article 4 → Slide 4
+             Article 5 → Slide 5
+             Article 6 → Slide 6
+             ...and so on.
+
+           The 4 small indicators show the position inside
+           each group of four.
+
+           RIGHT:
+             1 → 2 → 3 → 4 → 5 → 6 → ...
+
+           LEFT:
+             6 → 5 → 4 → 3 → 2 → 1
+        ===================================================== */
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const slides = Array.from(
+                document.querySelectorAll('.newsmind-slide')
+            );
+
+            const dots = Array.from(
+                document.querySelectorAll('.newsmind-dots .hero-dot')
+            );
+
+            const previousButton = document.getElementById('hero-prev');
+            const nextButton = document.getElementById('hero-next');
+
+            if (!slides.length) return;
+
+            let currentSlide = 0;
+
+            function updateDots() {
+                const position = currentSlide % 4;
+
+                dots.forEach(function (dot, index) {
+                    dot.classList.toggle('active', index === position);
+                });
+            }
+
+            function showSlide(index) {
+
+                // Continue through ALL articles.
+                // At the beginning, left goes to the LAST article.
+                if (index < 0) {
+                    index = slides.length - 1;
+                }
+
+                // At the end, right starts again from Article 1.
+                if (index >= slides.length) {
+                    index = 0;
+                }
+
+                slides.forEach(function (slide, i) {
+                    slide.classList.toggle('active', i === index);
+                });
+
+                currentSlide = index;
+                updateDots();
+            }
+
+            previousButton.addEventListener('click', function () {
+                showSlide(currentSlide - 1);
+            });
+
+            nextButton.addEventListener('click', function () {
+                showSlide(currentSlide + 1);
+            });
+
+            // The four indicators select the corresponding
+            // position in the CURRENT group of four.
+            dots.forEach(function (dot, index) {
+                dot.addEventListener('click', function () {
+
+                    const groupStart =
+                        Math.floor(currentSlide / 4) * 4;
+
+                    let target = groupStart + index;
+                    // If the final group has fewer than 4 articles,
+                    // select the last available article instead.
+                    if (target >= slides.length) {
+                        target = slides.length - 1;
+                    }
+                    showSlide(target);
+                });
+            });
+            showSlide(0);
+        });
+    </script>
+</body>
+</html>
