@@ -1418,32 +1418,6 @@ input {
 }
 
 
-.card-description.ai-summary-visible {
-    display: block;
-
-    -webkit-line-clamp: unset;
-
-    line-clamp: unset;
-
-    overflow: visible;
-
-    animation: summaryExpand 0.3s ease;
-}
-
-
-@keyframes summaryExpand {
-    from {
-        opacity: 0;
-        max-height: 0;
-    }
-
-    to {
-        opacity: 1;
-        max-height: 500px;
-    }
-}
-
-
 .skeleton-card {
     min-width: 0;
     overflow: hidden;
@@ -1574,17 +1548,6 @@ input {
 .ai-summary-button:disabled {
     cursor: default;
     opacity: 0.9;
-}
-
-
-.ai-summary-error {
-    margin-top: 8px;
-
-    color: #b42318;
-
-    font-size: 11px;
-
-    line-height: 1.4;
 }
 
 
@@ -2740,5 +2703,301 @@ input {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+    }
+}
+
+
+/* =========================================================
+   EDITORIAL AI SUMMARY MODAL
+========================================================= */
+.summary-modal[hidden],
+.summary-modal [hidden] {
+    display: none !important;
+}
+
+.summary-modal {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgb(0 0 0 / 62%);
+}
+
+.summary-modal-open {
+    overflow: hidden;
+}
+
+.summary-dialog {
+    position: relative;
+    width: min(880px, 100%);
+    max-height: min(88vh, 820px);
+    overflow: hidden;
+    color: #202124;
+    background: #fff;
+    border: 1px solid #e6e4e1;
+    border-radius: 14px;
+    box-shadow: 0 24px 70px rgb(0 0 0 / 28%);
+    outline: none;
+}
+
+.summary-modal-body {
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    max-height: min(88vh, 820px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.summary-article,
+.summary-content {
+    min-width: 0;
+    padding: 36px;
+}
+
+.summary-article {
+    border-right: 1px solid #e9e7e4;
+}
+
+.summary-article-image,
+.summary-image-placeholder {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    margin-bottom: 25px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #f1f0ed;
+}
+
+.summary-image-placeholder {
+    display: grid;
+    place-items: center;
+    color: #716f6b;
+    font-family: Georgia, serif;
+    font-size: 20px;
+}
+
+.summary-publisher,
+.summary-date {
+    margin: 0 0 8px;
+    color: #77736e;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.summary-publisher {
+    color: #343230;
+    font-weight: 700;
+}
+
+.summary-headline {
+    margin: 13px 0 22px;
+    color: #171717;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(21px, 2.3vw, 28px);
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.summary-original-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #292725;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: #c9c6c1;
+    text-underline-offset: 4px;
+}
+
+.summary-content {
+    padding-top: 48px;
+    padding-bottom: 30px;
+}
+
+.summary-close-icon {
+    position: absolute;
+    z-index: 1;
+    top: 14px;
+    right: 14px;
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    padding: 0;
+    color: #fff;
+    background: #292725;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.summary-eyebrow {
+    margin: 0 0 8px;
+    color: #77736e;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+#summary-modal-title {
+    margin: 0;
+    color: #171717;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 27px;
+    line-height: 1.2;
+}
+
+.summary-divider {
+    height: 1px;
+    margin: 22px 0;
+    background: #e9e7e4;
+}
+
+.summary-result h3,
+.summary-key-points h3 {
+    margin: 0 0 11px;
+    color: #292725;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.summary-text {
+    margin: 0;
+    color: #45423f;
+    font-size: 14px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.summary-key-points {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e9e7e4;
+}
+
+.summary-key-points ul {
+    display: grid;
+    gap: 9px;
+    margin: 0;
+    padding-left: 19px;
+    color: #45423f;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.summary-modal-status {
+    margin: 17px 0 0;
+    color: #68645f;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.summary-modal-status:empty {
+    display: none;
+}
+
+.summary-error-actions {
+    margin-top: 13px;
+}
+
+.summary-retry {
+    padding: 0;
+    color: #292725;
+    background: transparent;
+    border: 0;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.summary-close-button {
+    display: block;
+    min-width: 104px;
+    margin: 26px 0 0 auto;
+    padding: 10px 20px;
+    color: #fff;
+    background: #292725;
+    border: 1px solid #292725;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.summary-modal a:focus-visible,
+.summary-modal button:focus-visible {
+    outline: 3px solid #817d77;
+    outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+    .summary-modal {
+        padding: 12px;
+    }
+
+    .summary-dialog {
+        width: min(560px, 100%);
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 10px;
+    }
+
+    .summary-modal-body {
+        display: block;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .summary-article,
+    .summary-content {
+        overflow: visible;
+        padding: 24px;
+    }
+
+    .summary-article {
+        padding-top: 54px;
+        border-right: 0;
+        border-bottom: 1px solid #e9e7e4;
+    }
+
+    .summary-article-image,
+    .summary-image-placeholder {
+        max-height: 220px;
+        margin-bottom: 18px;
+    }
+
+    .summary-headline {
+        margin-bottom: 16px;
+    }
+
+    .summary-content {
+        padding-top: 26px;
+    }
+
+    #summary-modal-title {
+        padding-right: 26px;
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 380px) {
+    .summary-modal {
+        padding: 8px;
+    }
+
+    .summary-article,
+    .summary-content {
+        padding-right: 18px;
+        padding-left: 18px;
     }
 }

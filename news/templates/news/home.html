@@ -41,7 +41,7 @@
 
     <link
         rel="stylesheet"
-        href="{% static 'news/style.css' %}?v=11"
+        href="{% static 'news/style.css' %}?v=12"
     >
     <style>
         /* =====================================================
@@ -833,10 +833,13 @@
                                 type="button"
                                 class="ai-summary-button"
                                 data-url="{{ article.url }}"
-                                data-title="{{ article.title|escapejs }}"
-                                data-description="{{ article.description|escapejs }}"
-                                data-source="{{ article.source|default:'NewsMind'|escapejs }}"
+                                data-title="{{ article.title|escape }}"
+                                data-description="{{ article.description|escape }}"
+                                data-source="{{ article.source|default:'NewsMind'|escape }}"
+                                data-publisher="{{ article.source|escape }}"
                                 data-category="{{ query|default:'general' }}"
+                                data-image="{{ article.image|escape }}"
+                                data-date="{{ article.date|escape }}"
                             >
                                 AI Summarize
                             </button>
@@ -893,7 +896,55 @@
 
     </section>
 
-
+    <div
+        class="summary-modal"
+        id="ai-summary-modal"
+        aria-hidden="true"
+        hidden
+    >
+        <section
+            class="summary-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="summary-modal-title"
+            aria-describedby="summary-modal-status"
+            tabindex="-1"
+        >
+            <button type="button" class="summary-close-icon" aria-label="Close summary">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <div class="summary-modal-body">
+                <aside class="summary-article">
+                    <img class="summary-article-image" alt="" hidden>
+                    <div class="summary-image-placeholder" aria-hidden="true" hidden>NewsMind</div>
+                    <p class="summary-publisher"></p>
+                    <p class="summary-date"></p>
+                    <h2 class="summary-headline"></h2>
+                    <a class="summary-original-link" target="_blank" rel="noopener noreferrer">
+                        Read Original Article <span aria-hidden="true">→</span>
+                    </a>
+                </aside>
+                <div class="summary-content">
+                    <p class="summary-eyebrow">NEWSMIND INTELLIGENCE</p>
+                    <h2 id="summary-modal-title">AI Article Summary</h2>
+                    <div class="summary-divider"></div>
+                    <section class="summary-result" aria-labelledby="summary-section-title">
+                        <h3 id="summary-section-title">Summary</h3>
+                        <p class="summary-text"></p>
+                    </section>
+                    <section class="summary-key-points" aria-labelledby="summary-key-points-title" hidden>
+                        <h3 id="summary-key-points-title">Key Points</h3>
+                        <ul></ul>
+                    </section>
+                    <p class="summary-modal-status" id="summary-modal-status" role="status" aria-live="polite"></p>
+                    <div class="summary-error-actions" hidden>
+                        <button type="button" class="summary-retry">Try Again</button>
+                    </div>
+                    <button type="button" class="summary-close-button">Close</button>
+                </div>
+            </div>
+        </section>
+    </div>
 
     <!-- =================================================
          TOP PICKS
@@ -1260,108 +1311,187 @@ document
             return cookieValue ? decodeURIComponent(cookieValue.split('=')[1]) : '';
         }
 
-        function bindAiSummaryButtons() {
-            document.querySelectorAll('.ai-summary-button').forEach(function (button) {
-                if (button.dataset.bound === 'true') {
-                    return;
-                }
+        const summaryModal = document.getElementById('ai-summary-modal');
+        const summaryDialog = summaryModal.querySelector('.summary-dialog');
+        const summaryCloseButtons = summaryModal.querySelectorAll('.summary-close-icon, .summary-close-button');
+        const summaryHeadline = summaryModal.querySelector('.summary-headline');
+        const summaryPublisher = summaryModal.querySelector('.summary-publisher');
+        const summaryDate = summaryModal.querySelector('.summary-date');
+        const summaryImage = summaryModal.querySelector('.summary-article-image');
+        const summaryPlaceholder = summaryModal.querySelector('.summary-image-placeholder');
+        const summaryOriginalLink = summaryModal.querySelector('.summary-original-link');
+        const summaryText = summaryModal.querySelector('.summary-text');
+        const summaryStatus = summaryModal.querySelector('.summary-modal-status');
+        const keyPointsSection = summaryModal.querySelector('.summary-key-points');
+        const keyPointsList = keyPointsSection.querySelector('ul');
+        const retryActions = summaryModal.querySelector('.summary-error-actions');
+        const retryButton = summaryModal.querySelector('.summary-retry');
+        let activeButton = null;
+        let lastFocusedElement = null;
+        let requestInProgress = false;
 
-                button.dataset.bound = 'true';
+        function formatSummaryDate(value) {
+            if (!value) return '';
+            const date = new Date(`${value}T00:00:00`);
+            return Number.isNaN(date.getTime())
+                ? value
+                : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
 
-                button.addEventListener('click', function (event) {
-                    event.preventDefault();
+        function openSummaryModal(button) {
+            activeButton = button;
+            lastFocusedElement = button;
+            summaryHeadline.textContent = button.dataset.title || '';
+            summaryPublisher.textContent = button.dataset.publisher || '';
+            summaryPublisher.hidden = !summaryPublisher.textContent;
+            summaryDate.textContent = formatSummaryDate(button.dataset.date || '');
+            summaryDate.hidden = !summaryDate.textContent;
+            summaryOriginalLink.href = button.dataset.url || '';
+            summaryOriginalLink.hidden = !button.dataset.url;
 
-                    const card = button.closest('.news-card');
-                    if (!card) {
-                        return;
-                    }
+            if (button.dataset.image) {
+                summaryImage.src = button.dataset.image;
+                summaryImage.hidden = false;
+                summaryPlaceholder.hidden = true;
+            } else {
+                summaryImage.removeAttribute('src');
+                summaryImage.hidden = true;
+                summaryPlaceholder.hidden = false;
+            }
 
-                    const descriptionEl = card.querySelector('.card-description');
-                    const originalText = descriptionEl ? descriptionEl.textContent.trim() : '';
-                    const url = button.dataset.url || '';
-                    const title = button.dataset.title || '';
-                    const description = button.dataset.description || '';
-                    const source = button.dataset.source || 'NewsMind';
-                    const category = button.dataset.category || 'general';
+            summaryText.textContent = '';
+            summaryStatus.textContent = 'Generating your summary…';
+            keyPointsList.replaceChildren();
+            keyPointsSection.hidden = true;
+            retryActions.hidden = true;
+            summaryModal.hidden = false;
+            summaryModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('summary-modal-open');
+            summaryDialog.focus();
+        }
 
-                    if (!url) {
-                        return;
-                    }
+        summaryImage.addEventListener('error', function () {
+            summaryImage.hidden = true;
+            summaryPlaceholder.hidden = false;
+        });
 
-                    button.disabled = true;
-                    button.textContent = 'Summarizing...';
+        function closeSummaryModal() {
+            if (summaryModal.hidden) return;
+            summaryModal.hidden = true;
+            summaryModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('summary-modal-open');
+            if (lastFocusedElement && document.contains(lastFocusedElement)) {
+                lastFocusedElement.focus();
+            }
+        }
 
-                    const existingError = card.querySelector('.ai-summary-error');
-                    if (existingError) {
-                        existingError.remove();
-                    }
-
-                    fetch('/summarize-article/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCsrfToken(),
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            url: url,
-                            title: title,
-                            description: description,
-                            source: source,
-                            category: category,
-                        })
-                    })
-                    .then(function (response) {
-                        return response.json().then(function (data) {
-                            return { ok: response.ok, data: data };
-                        });
-                    })
-                    .then(function (result) {
-                        if (!result.ok || !result.data.summary) {
-                            button.disabled = false;
-                            button.textContent = 'AI Summarize';
-
-                            if (descriptionEl && originalText) {
-                                descriptionEl.textContent = originalText;
-                            }
-
-                            const errorEl = document.createElement('div');
-                            errorEl.className = 'ai-summary-error';
-                            errorEl.textContent = result.data && result.data.error ? result.data.error : 'AI summary is unavailable right now.';
-                            card.querySelector('.card-body').appendChild(errorEl);
-                            return;
-                        }
-
-                        if (descriptionEl) {
-                            descriptionEl.textContent = result.data.summary;
-                            descriptionEl.classList.add('ai-summary-visible');
-                        }
-
-                        button.textContent = '✓ AI Summary';
-                        button.disabled = true;
-                    })
-                    .catch(function () {
-                        button.disabled = false;
-                        button.textContent = 'AI Summarize';
-
-                        if (descriptionEl && originalText) {
-                            descriptionEl.textContent = originalText;
-                        }
-
-                        const errorEl = document.createElement('div');
-                        errorEl.className = 'ai-summary-error';
-                        errorEl.textContent = 'AI summary is unavailable right now.';
-                        card.querySelector('.card-body').appendChild(errorEl);
-                    });
-                });
+        function showKeyPoints(points) {
+            const items = Array.isArray(points) ? points : [];
+            items.forEach(function (point) {
+                if (typeof point !== 'string' || !point.trim()) return;
+                const item = document.createElement('li');
+                item.textContent = point;
+                keyPointsList.appendChild(item);
             });
+            keyPointsSection.hidden = keyPointsList.childElementCount === 0;
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', bindAiSummaryButtons);
-        } else {
-            bindAiSummaryButtons();
+        async function requestSummary(button) {
+            if (requestInProgress || !button) return;
+            const url = button.dataset.url || '';
+            if (!url) {
+                summaryStatus.textContent = 'The original article URL is unavailable, so a summary cannot be requested.';
+                retryActions.hidden = true;
+                return;
+            }
+
+            requestInProgress = true;
+            button.disabled = true;
+            summaryStatus.textContent = 'Generating your summary…';
+            retryActions.hidden = true;
+            summaryText.textContent = '';
+            keyPointsSection.hidden = true;
+
+            try {
+                const response = await fetch('{% url "summarize_article" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        url: url,
+                        title: button.dataset.title || '',
+                        description: button.dataset.description || '',
+                        source: button.dataset.source || 'NewsMind',
+                        category: button.dataset.category || 'general',
+                    }),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.summary) {
+                    throw new Error(data.error || 'AI summary is unavailable right now.');
+                }
+                summaryText.textContent = data.summary;
+                showKeyPoints(data.key_points);
+                summaryStatus.textContent = '';
+            } catch (error) {
+                summaryStatus.textContent = error.message || 'AI summary is unavailable right now.';
+                retryActions.hidden = false;
+            } finally {
+                button.disabled = false;
+                requestInProgress = false;
+            }
         }
+
+        document.querySelectorAll('.ai-summary-button').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (requestInProgress) return;
+                openSummaryModal(button);
+                requestSummary(button);
+            });
+        });
+
+        summaryCloseButtons.forEach(function (button) {
+            button.addEventListener('click', closeSummaryModal);
+        });
+        retryButton.addEventListener('click', function () {
+            requestSummary(activeButton);
+        });
+        summaryModal.addEventListener('click', function (event) {
+            if (event.target === summaryModal) closeSummaryModal();
+        });
+        document.addEventListener('keydown', function (event) {
+            if (summaryModal.hidden) return;
+            if (event.key === 'Escape') {
+                closeSummaryModal();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+
+            const focusable = Array.from(summaryDialog.querySelectorAll(
+                'a[href]:not([hidden]), button:not(:disabled):not([hidden])'
+            )).filter(function (element) {
+                return element.offsetParent !== null;
+            });
+            if (!focusable.length) {
+                event.preventDefault();
+                summaryDialog.focus();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            } else if (document.activeElement === summaryDialog) {
+                event.preventDefault();
+                (event.shiftKey ? last : first).focus();
+            }
+        });
     </script>
 
 
